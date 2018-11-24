@@ -5,7 +5,7 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
 
 public class FilterEngine {
-	
+
 	public BufferedImage applyKernel(final BufferedImage image, final IKernel kernel) {
 		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_4BYTE_ABGR_PRE);
 		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
@@ -19,7 +19,7 @@ public class FilterEngine {
 		final int imageHeight = imageToProcess.getHeight();
 		final byte[] pixels = ((DataBufferByte) imageToProcess.getRaster().getDataBuffer()).getData();
 
-	    final byte[] newPixels = new byte[pixels.length];
+		final byte[] newPixels = new byte[pixels.length];
 
 		for (int row = 0; row < imageHeight - kernelHeight; ++row) {
 			for (int col = 0; col < imageWidth - kernelWidth; ++col) {
@@ -45,8 +45,8 @@ public class FilterEngine {
 			}
 		}
 
-	    BufferedImage processedImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR_PRE);
-	    processedImage.setData(Raster.createRaster(processedImage.getSampleModel(), new DataBufferByte(newPixels, newPixels.length), null));
-	    return processedImage;
+		BufferedImage processedImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR_PRE);
+		processedImage.setData(Raster.createRaster(processedImage.getSampleModel(), new DataBufferByte(newPixels, newPixels.length), null));
+		return processedImage;
 	}
 }

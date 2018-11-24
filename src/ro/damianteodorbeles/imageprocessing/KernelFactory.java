@@ -182,6 +182,14 @@ public class KernelFactory {
 		return CUSTOM_NORMALIZED_KERNEL(Normalize(kernel), width, height, origin);
 	}
 	
+	public IKernel CUSTOM_GENERATED_KERNEL(final int originValue, final int otherValue, final int width, final int height, final int[] origin) {
+		double[] kernel = new double[width * height];
+		for (int npos = 0; npos < kernel.length; ++npos)
+			kernel[npos] = otherValue;
+		kernel[origin[0] * width + origin[1]] = originValue;
+		return CUSTOM_UNNORMALIZED_KERNEL(kernel, width, height, origin);
+	}
+	
 	private double[] Normalize(final double[] kernel) {
 		int sum = 0;
 		
