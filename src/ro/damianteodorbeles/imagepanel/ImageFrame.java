@@ -24,7 +24,7 @@ public class ImageFrame extends JPanel {
 	}
 
 	public BufferedImage getImage() {
-		return image;
+		return this.image;
 	}
 
 	public JFrame createImageWindow(final String title, final BufferedImage image) {

@@ -7,6 +7,8 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import ro.damianteodorbeles.imagepanel.ImageFrame;
+import ro.damianteodorbeles.imageprocessing.FilterEngine;
+import ro.damianteodorbeles.imageprocessing.KernelFactory;
 
 public class MainActivity {
 
@@ -20,7 +22,7 @@ public class MainActivity {
 		fileChooser.setFileFilter(new FileNameExtensionFilter("Image Files (*.jpg) | (*.gif) | (*.png)", "jpg", "gif", "png"));
 
 		final int dialogResult = fileChooser.showOpenDialog(null);
-		if(dialogResult == JFileChooser.APPROVE_OPTION) {
+		if (dialogResult == JFileChooser.APPROVE_OPTION) {
 			try {
 				image = ImageIO.read(fileChooser.getSelectedFile().getAbsoluteFile());
 			}
@@ -33,14 +35,16 @@ public class MainActivity {
 	}
 
 	static BufferedImage processImage(final BufferedImage image) {
-		return null;
+		FilterEngine filterEngine = new FilterEngine();
+		return filterEngine.applyKernel(image, new KernelFactory().EDGE_DETECTION());
 	}
 
 	public static void main(String args[]) {
-		ImageFrame originalImageFrame = new ImageFrame(new Dimension(PREFERRED_WIDTH, PREFERRED_HEIGHT));
+		Dimension preferredDimension = new Dimension(PREFERRED_WIDTH, PREFERRED_HEIGHT);
+		ImageFrame originalImageFrame = new ImageFrame(preferredDimension);
 		originalImageFrame.createImageWindow("Original Image", getImageFromFileChooser());
 
-		ImageFrame processedImageFrame = new ImageFrame(new Dimension(PREFERRED_WIDTH, PREFERRED_HEIGHT));
+		ImageFrame processedImageFrame = new ImageFrame(preferredDimension);
 		processedImageFrame.createImageWindow("Processed Image", processImage(originalImageFrame.getImage()));
 	}
 }
