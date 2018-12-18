@@ -19,14 +19,14 @@ public class MainActivity {
 		BufferedImage image = null;
 
 		final JFileChooser fileChooser = new JFileChooser();
-		fileChooser.setFileFilter(new FileNameExtensionFilter("Image Files (*.jpg) | (*.gif) | (*.png)", "jpg", "gif", "png"));
+		fileChooser.setFileFilter(
+				new FileNameExtensionFilter("Image Files (*.jpg) | (*.gif) | (*.png)", "jpg", "gif", "png"));
 
 		final int dialogResult = fileChooser.showOpenDialog(null);
 		if (dialogResult == JFileChooser.APPROVE_OPTION) {
 			try {
 				image = ImageIO.read(fileChooser.getSelectedFile().getAbsoluteFile());
-			}
-			catch (IOException exception) {
+			} catch (IOException exception) {
 				System.out.println("Couldn't read the file containing the image!");
 			}
 		}

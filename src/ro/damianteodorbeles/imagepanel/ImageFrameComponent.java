@@ -1,4 +1,5 @@
 package ro.damianteodorbeles.imagepanel;
+
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -12,7 +13,8 @@ public class ImageFrameComponent extends JPanel {
 
 	public ImageFrameComponent(final BufferedImage image, final Dimension size) {
 		final BufferedImage scaledImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_ARGB);
-		scaledImage.getGraphics().drawImage(image.getScaledInstance(size.width, size.height, BufferedImage.SCALE_SMOOTH), 0, 0, null);
+		scaledImage.getGraphics()
+				.drawImage(image.getScaledInstance(size.width, size.height, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		this.image = scaledImage;
 	}
 
