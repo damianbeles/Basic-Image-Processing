@@ -7,8 +7,7 @@ public class KernelFactory {
 
 			@Override
 			public float[] getKernel() {
-				return new float[] { (float) (1) / 9, (float) (1) / 9, (float) (1) / 9, (float) (1) / 9,
-						(float) (1) / 9, (float) (1) / 9, (float) (1) / 9, (float) (1) / 9, (float) (1) / 9 };
+				return new float[] { 1f / 9, 1f / 9, 1f / 9, 1f / 9, 1f / 9, 1f / 9, 1f / 9, 1f / 9, 1f / 9 };
 			}
 
 			@Override
@@ -33,8 +32,7 @@ public class KernelFactory {
 
 			@Override
 			public float[] getKernel() {
-				return new float[] { (float) (1) / 16, (float) (2) / 16, (float) (1) / 16, (float) (2) / 16,
-						(float) (4) / 16, (float) (2) / 16, (float) (1) / 16, (float) (2) / 16, (float) (1) / 16 };
+				return new float[] { 1f / 16, 2f / 16, 1f / 16, 2f / 16, 4f / 16, 2f / 16, 1f / 16, 2f / 16, 1f / 16 };
 			}
 
 			@Override
@@ -175,14 +173,14 @@ public class KernelFactory {
 	}
 
 	private float[] Normalize(final float[] kernel) {
-		int sum = 0;
+		float sum = 0;
 
 		for (int npos = 0; npos < kernel.length; ++npos) {
 			sum += kernel[npos];
 		}
 
 		for (int npos = 0; npos < kernel.length; ++npos) {
-			kernel[npos] /= (float) sum;
+			kernel[npos] /= sum;
 		}
 
 		return kernel;
