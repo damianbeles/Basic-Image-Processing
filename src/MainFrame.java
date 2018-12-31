@@ -20,6 +20,8 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -31,6 +33,7 @@ public class MainFrame extends JFrame {
 	private JTextField txfImagePath;
 
 	private BufferedImage image;
+	private BufferedImage processedImage;
 
 	/**
 	 * Launch the application.
@@ -52,9 +55,10 @@ public class MainFrame extends JFrame {
 	 * Create the frame.
 	 */
 	public MainFrame() {
+		setResizable(false);
 		setTitle("Basic Image Processing by Damian-Teodor BELES");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 624, 392);
+		setBounds(100, 100, 622, 390);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -62,6 +66,8 @@ public class MainFrame extends JFrame {
 
 		JButton btnApplyFilter = new JButton("Apply filter");
 		JButton btnBrowse = new JButton("Browse...");
+		JButton btnSaveImage = new JButton("Save image");
+		JButton btnSeeDefault = new JButton("See default");
 		JComboBox<String> cmbFilter = new JComboBox<String>();
 		JPanel panelFilter = new JPanel();
 		JPanel panelProcessedImage = new JPanel();
@@ -69,7 +75,13 @@ public class MainFrame extends JFrame {
 		btnApplyFilter.setBounds(10, 51, 207, 23);
 		btnApplyFilter.setEnabled(false);
 
-		btnBrowse.setBounds(509, 6, 89, 23);
+		btnBrowse.setBounds(517, 7, 89, 23);
+
+		btnSaveImage.setEnabled(false);
+		btnSaveImage.setBounds(10, 327, 227, 23);
+
+		btnSeeDefault.setEnabled(false);
+		btnSeeDefault.setBounds(10, 293, 227, 23);
 
 		cmbFilter.setEnabled(false);
 		cmbFilter
@@ -81,17 +93,16 @@ public class MainFrame extends JFrame {
 		panelFilter.setBounds(10, 36, 227, 83);
 		panelFilter.setLayout(null);
 
-		panelProcessedImage.setBounds(247, 36, 351, 306);
+		panelProcessedImage.setBounds(247, 36, 359, 314);
 
 		txfImagePath = new JTextField();
 		txfImagePath.setHorizontalAlignment(SwingConstants.CENTER);
 		txfImagePath.setEditable(false);
-		txfImagePath.setBounds(10, 8, 489, 20);
+		txfImagePath.setBounds(10, 8, 497, 20);
 		txfImagePath.setColumns(10);
 
 		btnApplyFilter.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				BufferedImage processedImage = null;
 				FilterEngine filterEngine = new FilterEngine();
 				switch (cmbFilter.getSelectedItem().toString()) {
 				case "BOX BLUR":
@@ -125,6 +136,8 @@ public class MainFrame extends JFrame {
 				panelProcessedImage.getGraphics()
 						.drawImage(processedImage.getScaledInstance(panelProcessedImage.getWidth(),
 								panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
+				btnSaveImage.setEnabled(true);
+				btnSeeDefault.setEnabled(true);
 			}
 		});
 
@@ -134,19 +147,59 @@ public class MainFrame extends JFrame {
 				fileChooser.setFileFilter(
 						new FileNameExtensionFilter("Image Files (*.jpg) | (*.gif) | (*.png)", "jpg", "gif", "png"));
 
-				final int dialogResult = fileChooser.showOpenDialog(null);
+				final int dialogResult = fileChooser.showOpenDialog(contentPane);
 				if (dialogResult == JFileChooser.APPROVE_OPTION) {
 					try {
 						File selectedFile = fileChooser.getSelectedFile().getAbsoluteFile();
 						image = ImageIO.read(selectedFile);
 						txfImagePath.setText(selectedFile.getAbsolutePath());
+						panelProcessedImage.getGraphics()
+								.drawImage(
+										image.getScaledInstance(panelProcessedImage.getWidth(),
+												panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH),
+										0, 0, null);
 						btnApplyFilter.setEnabled(true);
 						cmbFilter.setEnabled(true);
 					} catch (IOException exception) {
-						JOptionPane.showMessageDialog(contentPane, "Couldn't read the file containing the image!");
+						JOptionPane.showMessageDialog(contentPane, "Couldn't read the file containing the image.");
 					}
 				} else {
 					JOptionPane.showMessageDialog(contentPane, "Choose an image in order to proceed.");
+				}
+			}
+		});
+
+		btnSaveImage.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				final JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+				final int dialogResult = fileChooser.showOpenDialog(contentPane);
+				if (dialogResult == JFileChooser.APPROVE_OPTION) {
+					String timestamp = new SimpleDateFormat("dd.MM.yyyy HH.mm").format(new Date());
+					try {
+						ImageIO.write(processedImage, "PNG",
+								new File(fileChooser.getSelectedFile() + "\\Processed Image - " + timestamp + ".png"));
+					} catch (IOException e) {
+						JOptionPane.showMessageDialog(contentPane, "Couldn't save the image.");
+					}
+				}
+			}
+		});
+
+		btnSeeDefault.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (btnSeeDefault.getText() == "See default") {
+					panelProcessedImage.getGraphics().drawImage(image.getScaledInstance(panelProcessedImage.getWidth(),
+							panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
+					btnSeeDefault.setText("See processed");
+					btnSaveImage.setEnabled(false);
+				} else {
+					panelProcessedImage.getGraphics()
+							.drawImage(processedImage.getScaledInstance(panelProcessedImage.getWidth(),
+									panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
+					btnSeeDefault.setText("See default");
+					btnSaveImage.setEnabled(true);
 				}
 			}
 		});
@@ -155,6 +208,8 @@ public class MainFrame extends JFrame {
 		panelFilter.add(cmbFilter);
 
 		contentPane.add(btnBrowse);
+		contentPane.add(btnSaveImage);
+		contentPane.add(btnSeeDefault);
 		contentPane.add(txfImagePath);
 		contentPane.add(panelFilter);
 		contentPane.add(panelProcessedImage);
