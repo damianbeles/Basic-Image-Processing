@@ -1,4 +1,5 @@
 import java.awt.EventQueue;
+import java.awt.Image;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -8,13 +9,11 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import ro.damianteodorbeles.imageprocessing.ColorFilter;
 import ro.damianteodorbeles.imageprocessing.FilterEngine;
-import ro.damianteodorbeles.imageprocessing.KernelFactory;
+import ro.damianteodorbeles.imageprocessing.Filter;
 
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -25,6 +24,7 @@ import java.util.Date;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.JToggleButton;
 
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
@@ -34,6 +34,8 @@ public class MainFrame extends JFrame {
 
 	private BufferedImage image;
 	private BufferedImage processedImage;
+	private Image scaledImage;
+	private Image scaledProcessedImage;
 
 	/**
 	 * Launch the application.
@@ -54,6 +56,7 @@ public class MainFrame extends JFrame {
 	/**
 	 * Create the frame.
 	 */
+	@SuppressWarnings("unchecked")
 	public MainFrame() {
 		setResizable(false);
 		setTitle("Basic Image Processing by Damian-Teodor BELES");
@@ -61,33 +64,29 @@ public class MainFrame extends JFrame {
 		setBounds(100, 100, 622, 390);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		setContentPane(contentPane);
 		contentPane.setLayout(null);
+		setContentPane(contentPane);
 
 		JButton btnApplyFilter = new JButton("Apply filter");
 		JButton btnBrowse = new JButton("Browse...");
 		JButton btnSaveImage = new JButton("Save image");
-		JButton btnSeeDefault = new JButton("See default");
-		JComboBox<String> cmbFilter = new JComboBox<String>();
+		JComboBox<Filter> cmbFilter = new JComboBox<Filter>();
 		JPanel panelFilter = new JPanel();
 		JPanel panelProcessedImage = new JPanel();
+		JToggleButton tglbtnSeeDefaultOrProcessedImage = new JToggleButton("See default image");
 
 		btnApplyFilter.setBounds(10, 51, 207, 23);
 		btnApplyFilter.setEnabled(false);
 
 		btnBrowse.setBounds(517, 7, 89, 23);
 
-		btnSaveImage.setEnabled(false);
 		btnSaveImage.setBounds(10, 327, 227, 23);
+		btnSaveImage.setEnabled(false);
 
-		btnSeeDefault.setEnabled(false);
-		btnSeeDefault.setBounds(10, 293, 227, 23);
-
-		cmbFilter.setEnabled(false);
-		cmbFilter
-				.setModel(new DefaultComboBoxModel<String>(new String[] { "BOX BLUR", "GAUSSIAN BLUR", "EDGE DETECTION",
-						"SHARPEN", "EMBOSS", "RED COLORING", "GREEN COLORING", "BLUE COLORING", "GRAYSCALE" }));
 		cmbFilter.setBounds(10, 20, 207, 20);
+		cmbFilter.setEnabled(false);
+		cmbFilter.setModel(new EnumComboBoxModel());
+		cmbFilter.setRenderer(new EnumComboBoxRenderer());
 
 		panelFilter.setBorder(BorderFactory.createTitledBorder("Filter"));
 		panelFilter.setBounds(10, 36, 227, 83);
@@ -95,49 +94,26 @@ public class MainFrame extends JFrame {
 
 		panelProcessedImage.setBounds(247, 36, 359, 314);
 
+		tglbtnSeeDefaultOrProcessedImage.setBounds(10, 293, 227, 23);
+		tglbtnSeeDefaultOrProcessedImage.setEnabled(false);
+
 		txfImagePath = new JTextField();
-		txfImagePath.setHorizontalAlignment(SwingConstants.CENTER);
-		txfImagePath.setEditable(false);
 		txfImagePath.setBounds(10, 8, 497, 20);
 		txfImagePath.setColumns(10);
+		txfImagePath.setEditable(false);
+		txfImagePath.setHorizontalAlignment(SwingConstants.CENTER);
 
 		btnApplyFilter.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				FilterEngine filterEngine = new FilterEngine();
-				switch (cmbFilter.getSelectedItem().toString()) {
-				case "BOX BLUR":
-					processedImage = filterEngine.applyKernel(image, new KernelFactory().BOX_BLUR());
-					break;
-				case "GAUSSIAN BLUR":
-					processedImage = filterEngine.applyKernel(image, new KernelFactory().GAUSSIAN_BLUR());
-					break;
-				case "EDGE DETECTION":
-					processedImage = filterEngine.applyKernel(image, new KernelFactory().EDGE_DETECTION());
-					break;
-				case "SHARPEN":
-					processedImage = filterEngine.applyKernel(image, new KernelFactory().SHARPEN());
-					break;
-				case "EMBOSS":
-					processedImage = filterEngine.applyKernel(image, new KernelFactory().EMBOSS());
-					break;
-				case "RED COLORING":
-					processedImage = filterEngine.setColorFilter(image, ColorFilter.Red);
-					break;
-				case "GREEN COLORING":
-					processedImage = filterEngine.setColorFilter(image, ColorFilter.Green);
-					break;
-				case "BLUE COLORING":
-					processedImage = filterEngine.setColorFilter(image, ColorFilter.Blue);
-					break;
-				case "GRAYSCALE":
-					processedImage = filterEngine.grayscale(image);
-					break;
-				}
-				panelProcessedImage.getGraphics()
-						.drawImage(processedImage.getScaledInstance(panelProcessedImage.getWidth(),
-								panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
+				processedImage = filterEngine.processImage(image, (Filter) cmbFilter.getSelectedItem());
+				scaledProcessedImage = processedImage.getScaledInstance(panelProcessedImage.getWidth(),
+						panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH);
+				panelProcessedImage.getGraphics().drawImage(scaledProcessedImage, 0, 0, null);
 				btnSaveImage.setEnabled(true);
-				btnSeeDefault.setEnabled(true);
+				tglbtnSeeDefaultOrProcessedImage.setEnabled(true);
+				tglbtnSeeDefaultOrProcessedImage.setSelected(false);
+				tglbtnSeeDefaultOrProcessedImage.setText("See default image");
 			}
 		});
 
@@ -152,12 +128,10 @@ public class MainFrame extends JFrame {
 					try {
 						File selectedFile = fileChooser.getSelectedFile().getAbsoluteFile();
 						image = ImageIO.read(selectedFile);
+						scaledImage = image.getScaledInstance(panelProcessedImage.getWidth(),
+								panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH);
 						txfImagePath.setText(selectedFile.getAbsolutePath());
-						panelProcessedImage.getGraphics()
-								.drawImage(
-										image.getScaledInstance(panelProcessedImage.getWidth(),
-												panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH),
-										0, 0, null);
+						panelProcessedImage.getGraphics().drawImage(scaledImage, 0, 0, null);
 						btnApplyFilter.setEnabled(true);
 						cmbFilter.setEnabled(true);
 					} catch (IOException exception) {
@@ -187,20 +161,16 @@ public class MainFrame extends JFrame {
 			}
 		});
 
-		btnSeeDefault.addActionListener(new ActionListener() {
+		tglbtnSeeDefaultOrProcessedImage.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if (btnSeeDefault.getText() == "See default") {
-					panelProcessedImage.getGraphics().drawImage(image.getScaledInstance(panelProcessedImage.getWidth(),
-							panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
-					btnSeeDefault.setText("See processed");
-					btnSaveImage.setEnabled(false);
-				} else {
-					panelProcessedImage.getGraphics()
-							.drawImage(processedImage.getScaledInstance(panelProcessedImage.getWidth(),
-									panelProcessedImage.getHeight(), BufferedImage.SCALE_SMOOTH), 0, 0, null);
-					btnSeeDefault.setText("See default");
-					btnSaveImage.setEnabled(true);
-				}
+				boolean tglbtnEnabled = tglbtnSeeDefaultOrProcessedImage.isSelected() ? false : true;
+				Image imageToDraw = tglbtnSeeDefaultOrProcessedImage.isSelected() ? scaledImage : scaledProcessedImage;
+				String tglbtnText = tglbtnSeeDefaultOrProcessedImage.isSelected() ? "See processed image"
+						: "See default image";
+
+				panelProcessedImage.getGraphics().drawImage(imageToDraw, 0, 0, null);
+				tglbtnSeeDefaultOrProcessedImage.setText(tglbtnText);
+				btnSaveImage.setEnabled(tglbtnEnabled);
 			}
 		});
 
@@ -209,9 +179,9 @@ public class MainFrame extends JFrame {
 
 		contentPane.add(btnBrowse);
 		contentPane.add(btnSaveImage);
-		contentPane.add(btnSeeDefault);
-		contentPane.add(txfImagePath);
 		contentPane.add(panelFilter);
 		contentPane.add(panelProcessedImage);
+		contentPane.add(tglbtnSeeDefaultOrProcessedImage);
+		contentPane.add(txfImagePath);
 	}
 }

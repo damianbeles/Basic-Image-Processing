@@ -11,7 +11,22 @@ import java.util.concurrent.Executors;
 
 public class FilterEngine {
 
-	public BufferedImage grayscale(final BufferedImage image) {
+	public BufferedImage processImage(final BufferedImage image, Filter filter) {
+		switch (filter) {
+		case BOX_BLUR: return applyKernel(image, new KernelFactory().BOX_BLUR());
+		case GAUSSIAN_BLUR: return applyKernel(image, new KernelFactory().GAUSSIAN_BLUR());
+		case EDGE_DETECTION: return applyKernel(image, new KernelFactory().EDGE_DETECTION());
+		case SHARPEN: return applyKernel(image, new KernelFactory().SHARPEN());
+		case EMBOSS: return applyKernel(image, new KernelFactory().EMBOSS());
+		case RED_COLORING: return setColorFilter(image, ColorFilter.RED);
+		case GREEN_COLORING: return setColorFilter(image, ColorFilter.GREEN);
+		case BLUE_COLORING: return setColorFilter(image, ColorFilter.BLUE);
+		case GRAYSCALE: return grayscale(image);
+		default: return image;
+		}
+	}
+
+	private BufferedImage grayscale(final BufferedImage image) {
 		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
 				BufferedImage.TYPE_4BYTE_ABGR_PRE);
 		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
@@ -38,8 +53,11 @@ public class FilterEngine {
 						for (int col = startCol; col < endCol; ++col) {
 							int pos = row * 4 * imageWidth + col * 4;
 
-							byte gray = (byte) (0.299f * pixels[pos + 3] + 0.587f * pixels[pos + 2]
-									+ 0.114f * pixels[pos + 1]);
+							final float blue = ((int) pixels[pos + 1]) & 0xFF;
+							final float green = ((int) pixels[pos + 2]) & 0xFF;
+							final float red = ((int) pixels[pos + 3]) & 0xFF;
+							byte gray = (byte) (0.299f * red + 0.587f * green + 0.114f * blue);
+
 							newPixels[pos] = (byte) 0xFF;
 							for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
 								newPixels[pos + pixelNumber] = gray;
@@ -64,7 +82,7 @@ public class FilterEngine {
 		return processedImage;
 	}
 
-	public BufferedImage setColorFilter(final BufferedImage image, final ColorFilter colorFilter) {
+	private BufferedImage setColorFilter(final BufferedImage image, final ColorFilter colorFilter) {
 		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
 				BufferedImage.TYPE_4BYTE_ABGR_PRE);
 		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
@@ -75,9 +93,9 @@ public class FilterEngine {
 		final byte[] newPixels = new byte[pixels.length];
 
 		int offset;
-		if (colorFilter == ColorFilter.Blue)
+		if (colorFilter == ColorFilter.BLUE)
 			offset = 1;
-		else if (colorFilter == ColorFilter.Green)
+		else if (colorFilter == ColorFilter.GREEN)
 			offset = 2;
 		else
 			offset = 3;
@@ -138,7 +156,7 @@ public class FilterEngine {
 		return processedImage;
 	}
 
-	public BufferedImage applyKernel(final BufferedImage image, final IKernel kernel) {
+	private BufferedImage applyKernel(final BufferedImage image, final IKernel kernel) {
 		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
 				BufferedImage.TYPE_4BYTE_ABGR_PRE);
 		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
