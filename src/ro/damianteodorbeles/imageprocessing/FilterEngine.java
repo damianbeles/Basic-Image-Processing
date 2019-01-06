@@ -11,41 +11,66 @@ import java.util.concurrent.Executors;
 
 public class FilterEngine {
 
+	private final int numberOfThreadsToProcessOn = 4;
+
 	public BufferedImage processImage(final BufferedImage image, Filter filter) {
 		switch (filter) {
-		case BOX_BLUR: return applyKernel(image, new KernelFactory().BOX_BLUR());
-		case GAUSSIAN_BLUR: return applyKernel(image, new KernelFactory().GAUSSIAN_BLUR());
-		case EDGE_DETECTION: return applyKernel(image, new KernelFactory().EDGE_DETECTION());
-		case SHARPEN: return applyKernel(image, new KernelFactory().SHARPEN());
-		case EMBOSS: return applyKernel(image, new KernelFactory().EMBOSS());
-		case RED_COLORING: return setColorFilter(image, ColorFilter.RED);
-		case GREEN_COLORING: return setColorFilter(image, ColorFilter.GREEN);
-		case BLUE_COLORING: return setColorFilter(image, ColorFilter.BLUE);
-		case GRAYSCALE: return grayscale(image);
-		default: return image;
+		case BOX_BLUR:
+			return applyKernel(image, new KernelFactory().BOX_BLUR());
+		case GAUSSIAN_BLUR:
+			return applyKernel(image, new KernelFactory().GAUSSIAN_BLUR());
+		case EDGE_DETECTION:
+			return applyKernel(image, new KernelFactory().EDGE_DETECTION());
+		case SHARPEN:
+			return applyKernel(image, new KernelFactory().SHARPEN());
+		case EMBOSS:
+			return applyKernel(image, new KernelFactory().EMBOSS());
+		case RED_COLORING:
+			return setColorFilter(image, ColorFilter.RED);
+		case GREEN_COLORING:
+			return setColorFilter(image, ColorFilter.GREEN);
+		case BLUE_COLORING:
+			return setColorFilter(image, ColorFilter.BLUE);
+		case GRAYSCALE:
+			return grayscale(image);
+		default:
+			return image;
 		}
 	}
 
+	private BufferedImage copyImage(BufferedImage image) {
+		BufferedImage returnImage = new BufferedImage(image.getWidth(), image.getHeight(),
+				BufferedImage.TYPE_4BYTE_ABGR);
+		returnImage.getGraphics().drawImage(image, 0, 0, null);
+		return returnImage;
+	}
+
+	private BufferedImage createBufferedImageFromByteArray(final byte[] pixels, final int imageWidth,
+			final int imageHeight, final int type) {
+		BufferedImage returnImage = new BufferedImage(imageWidth, imageHeight, type);
+		returnImage.setData(
+				Raster.createRaster(returnImage.getSampleModel(), new DataBufferByte(pixels, pixels.length), null));
+		return returnImage;
+	}
+
 	private BufferedImage grayscale(final BufferedImage image) {
-		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
-				BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
+		BufferedImage imageToProcess = copyImage(image);
 		final int imageWidth = imageToProcess.getWidth();
 		final int imageHeight = imageToProcess.getHeight();
 		final byte[] pixels = ((DataBufferByte) imageToProcess.getRaster().getDataBuffer()).getData();
 
 		final byte[] newPixels = new byte[pixels.length];
 
-		ExecutorService grayscaleOnFourThreads = Executors.newFixedThreadPool(4);
-		CompletionService<Void> grayscaleOnFourThreadsCompletition = new ExecutorCompletionService<Void>(
-				grayscaleOnFourThreads);
+		ExecutorService grayscaleMultithread = Executors.newFixedThreadPool(numberOfThreadsToProcessOn);
+		CompletionService<Void> grayscaleMultithreadCompletition = new ExecutorCompletionService<Void>(
+				grayscaleMultithread);
 
-		for (int threadIndex = 0; threadIndex < 4; ++threadIndex) {
+		for (int threadIndex = 0; threadIndex < numberOfThreadsToProcessOn; ++threadIndex) {
 			final int indexer = threadIndex;
-			grayscaleOnFourThreadsCompletition.submit(new Callable<Void>() {
+			grayscaleMultithreadCompletition.submit(new Callable<Void>() {
 				public Void call() {
-					final int startRow = indexer * (imageHeight >> 2);
-					final int endRow = (indexer + 1) * (imageHeight >> 2);
+					final int startRow = indexer * (imageHeight / numberOfThreadsToProcessOn);
+					final int endRow = (indexer + 1) * (imageHeight / numberOfThreadsToProcessOn);
 					final int startCol = 0;
 					final int endCol = imageWidth;
 
@@ -68,24 +93,19 @@ public class FilterEngine {
 			});
 		}
 
-		for (int threadNumber = 0; threadNumber < 4; ++threadNumber) {
+		for (int threadNumber = 0; threadNumber < numberOfThreadsToProcessOn; ++threadNumber) {
 			try {
-				grayscaleOnFourThreadsCompletition.take();
+				grayscaleMultithreadCompletition.take();
 			} catch (InterruptedException e) {
 				System.out.println("Exception caught while processing the image on multiple threads.");
 			}
 		}
 
-		BufferedImage processedImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		processedImage.setData(Raster.createRaster(processedImage.getSampleModel(),
-				new DataBufferByte(newPixels, newPixels.length), null));
-		return processedImage;
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
 	}
 
 	private BufferedImage setColorFilter(final BufferedImage image, final ColorFilter colorFilter) {
-		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
-				BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
+		BufferedImage imageToProcess = copyImage(image);
 		final int imageWidth = imageToProcess.getWidth();
 		final int imageHeight = imageToProcess.getHeight();
 		final byte[] pixels = ((DataBufferByte) imageToProcess.getRaster().getDataBuffer()).getData();
@@ -100,16 +120,16 @@ public class FilterEngine {
 		else
 			offset = 3;
 
-		ExecutorService setColorFilterOnFourThreads = Executors.newFixedThreadPool(4);
-		CompletionService<Void> setColorFilterOnFourThreadsCompletition = new ExecutorCompletionService<Void>(
-				setColorFilterOnFourThreads);
+		ExecutorService setColorFilterMultithread = Executors.newFixedThreadPool(numberOfThreadsToProcessOn);
+		CompletionService<Void> setColorFilterMultithreadCompletition = new ExecutorCompletionService<Void>(
+				setColorFilterMultithread);
 
-		for (int threadIndex = 0; threadIndex < 4; ++threadIndex) {
+		for (int threadIndex = 0; threadIndex < numberOfThreadsToProcessOn; ++threadIndex) {
 			final int indexer = threadIndex;
-			setColorFilterOnFourThreadsCompletition.submit(new Callable<Void>() {
+			setColorFilterMultithreadCompletition.submit(new Callable<Void>() {
 				public Void call() {
-					final int startRow = indexer * (imageHeight >> 2);
-					final int endRow = (indexer + 1) * (imageHeight >> 2);
+					final int startRow = indexer * (imageHeight / numberOfThreadsToProcessOn);
+					final int endRow = (indexer + 1) * (imageHeight / numberOfThreadsToProcessOn);
 					final int startCol = 0;
 					final int endCol = imageWidth;
 
@@ -142,25 +162,19 @@ public class FilterEngine {
 			});
 		}
 
-		for (int threadNumber = 0; threadNumber < 4; ++threadNumber) {
+		for (int threadNumber = 0; threadNumber < numberOfThreadsToProcessOn; ++threadNumber) {
 			try {
-				setColorFilterOnFourThreadsCompletition.take();
+				setColorFilterMultithreadCompletition.take();
 			} catch (InterruptedException e) {
 				System.out.println("Exception caught while processing the image on multiple threads.");
 			}
 		}
 
-		BufferedImage processedImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		processedImage.setData(Raster.createRaster(processedImage.getSampleModel(),
-				new DataBufferByte(newPixels, newPixels.length), null));
-		return processedImage;
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
 	}
 
 	private BufferedImage applyKernel(final BufferedImage image, final IKernel kernel) {
-		BufferedImage imageToProcess = new BufferedImage(image.getWidth(), image.getHeight(),
-				BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		imageToProcess.getGraphics().drawImage(image, 0, 0, null);
-
+		BufferedImage imageToProcess = copyImage(image);
 		final float[] kernelMatrix = kernel.getKernel();
 		final int kernelWidth = kernel.getWidth();
 		final int kernelHeight = kernel.getHeight();
@@ -178,16 +192,16 @@ public class FilterEngine {
 
 		final byte[] newPixels = new byte[pixels.length];
 
-		ExecutorService applyKernelOnFourThreads = Executors.newFixedThreadPool(4);
-		CompletionService<Void> applyKernelOnFourThreadsCompletition = new ExecutorCompletionService<Void>(
-				applyKernelOnFourThreads);
+		ExecutorService applyKernelMultithread = Executors.newFixedThreadPool(numberOfThreadsToProcessOn);
+		CompletionService<Void> applyKernelMultithreadCompletition = new ExecutorCompletionService<Void>(
+				applyKernelMultithread);
 
-		for (int threadIndex = 0; threadIndex < 4; ++threadIndex) {
+		for (int threadIndex = 0; threadIndex < numberOfThreadsToProcessOn; ++threadIndex) {
 			final int indexer = threadIndex;
-			applyKernelOnFourThreadsCompletition.submit(new Callable<Void>() {
+			applyKernelMultithreadCompletition.submit(new Callable<Void>() {
 				public Void call() {
-					final int startRow = indexer * (imageHeight >> 2);
-					final int endRow = (indexer + 1) * (imageHeight >> 2);
+					final int startRow = indexer * (imageHeight / numberOfThreadsToProcessOn);
+					final int endRow = (indexer + 1) * (imageHeight / numberOfThreadsToProcessOn);
 					final int startCol = 0;
 					final int endCol = imageWidth;
 
@@ -231,17 +245,14 @@ public class FilterEngine {
 			});
 		}
 
-		for (int threadNumber = 0; threadNumber < 4; ++threadNumber) {
+		for (int threadNumber = 0; threadNumber < numberOfThreadsToProcessOn; ++threadNumber) {
 			try {
-				applyKernelOnFourThreadsCompletition.take();
+				applyKernelMultithreadCompletition.take();
 			} catch (InterruptedException e) {
 				System.out.println("Exception caught while processing the image on multiple threads.");
 			}
 		}
 
-		BufferedImage processedImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR_PRE);
-		processedImage.setData(Raster.createRaster(processedImage.getSampleModel(),
-				new DataBufferByte(newPixels, newPixels.length), null));
-		return processedImage;
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
 	}
 }
