@@ -28,106 +28,6 @@ public class FilterEngine {
 		return returnImage;
 	}
 
-	private class Processor {
-
-		public void applyNegative(final int startRow, final int endRow, final int startCol, final int endCol,
-				final int imageWidth, byte[] pixels, byte[] newPixels) {
-			for (int row = startRow; row < endRow; ++row) {
-				for (int col = startCol; col < endCol; ++col) {
-					int pos = row * 4 * imageWidth + col * 4;
-
-					newPixels[pos] = (byte) 0xFF;
-					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
-						newPixels[pos + pixelNumber] = (byte) (255 - (int) (pixels[pos + pixelNumber] & 0xFF));
-				}
-			}
-		}
-
-		public void applyGrayscale(final int startRow, final int endRow, final int startCol, final int endCol,
-				final int imageWidth, byte[] pixels, byte[] newPixels) {
-			for (int row = startRow; row < endRow; ++row) {
-				for (int col = startCol; col < endCol; ++col) {
-					int pos = row * 4 * imageWidth + col * 4;
-
-					final float blue = ((int) pixels[pos + 1]) & 0xFF;
-					final float green = ((int) pixels[pos + 2]) & 0xFF;
-					final float red = ((int) pixels[pos + 3]) & 0xFF;
-					byte gray = (byte) (0.299f * red + 0.587f * green + 0.114f * blue);
-
-					newPixels[pos] = (byte) 0xFF;
-					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
-						newPixels[pos + pixelNumber] = gray;
-				}
-			}
-		}
-
-		public void applyColorFilter(final int startRow, final int endRow, final int startCol, final int endCol,
-				final int imageWidth, byte[] pixels, byte[] newPixels, ColorFilter colorFilter) {
-			int offset;
-			if (colorFilter == ColorFilter.BLUE)
-				offset = 1;
-			else if (colorFilter == ColorFilter.GREEN)
-				offset = 2;
-			else
-				offset = 3;
-
-			for (int row = startRow; row < endRow; ++row) {
-				for (int col = startCol; col < endCol; ++col) {
-					int pos = row * 4 * imageWidth + col * 4;
-
-					newPixels[pos] = (byte) 0xFF;
-					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
-						newPixels[pos + pixelNumber] = (byte) 0;
-					newPixels[pos + offset] = pixels[pos + offset];
-				}
-			}
-		}
-
-		public void applyKernel(final int startRow, final int endRow, final int startCol, final int endCol,
-				final int imageWidth, byte[] pixels, byte[] newPixels, final IKernel kernel) {
-			final float[] kernelMatrix = kernel.getKernel();
-			final int kernelWidth = kernel.getWidth();
-			final int kernelHeight = kernel.getHeight();
-			final int[] origin = kernel.getOrigin();
-
-			final int startFromRow = startRow - origin[0];
-			final int endAtRow = endRow - origin[0];
-			final int startFromCol = startCol - origin[1];
-			final int endAtCol = endCol - origin[1];
-
-			for (int row = startFromRow; row < endAtRow; ++row) {
-				for (int col = startFromCol; col < endAtCol; ++col) {
-					float redSum = 0;
-					float greenSum = 0;
-					float blueSum = 0;
-					for (int npos = 0; npos < kernelMatrix.length; ++npos) {
-						int relativeRow = row + (kernelWidth - npos / kernelWidth - 1);
-						int relativeCol = col + (kernelWidth - npos % kernelWidth - 1);
-						if (relativeRow < startRow)
-							relativeRow += kernelHeight;
-						else if (relativeRow >= endRow)
-							relativeRow -= kernelHeight;
-						if (relativeCol < startCol)
-							relativeCol += kernelWidth;
-						else if (relativeCol >= endCol)
-							relativeCol -= kernelWidth;
-
-						int pos = (relativeRow * 4 * imageWidth) + (relativeCol * 4) + 1;
-						blueSum += kernelMatrix[npos] * ((int) pixels[pos++] & 0xFF);
-						greenSum += kernelMatrix[npos] * ((int) pixels[pos++] & 0xFF);
-						redSum += kernelMatrix[npos] * ((int) pixels[pos] & 0xFF);
-					}
-
-					int pos = ((row + origin[0]) * 4 * imageWidth) + ((col + origin[1]) * 4);
-					newPixels[pos++] = (byte) 0xFF;
-					newPixels[pos++] = (byte) blueSum;
-					newPixels[pos++] = (byte) greenSum;
-					newPixels[pos] = (byte) redSum;
-				}
-			}
-		}
-	};
-
 	public BufferedImage processImage(final BufferedImage image, Filter filter) {
 		BufferedImage imageToProcess = copyImage(image);
 		final int imageWidth = imageToProcess.getWidth();
@@ -208,4 +108,104 @@ public class FilterEngine {
 
 		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight);
 	}
+
+	private class Processor {
+
+		public void applyColorFilter(final int startRow, final int endRow, final int startCol, final int endCol,
+				final int imageWidth, byte[] pixels, byte[] newPixels, ColorFilter colorFilter) {
+			int offset;
+			if (colorFilter == ColorFilter.BLUE)
+				offset = 1;
+			else if (colorFilter == ColorFilter.GREEN)
+				offset = 2;
+			else
+				offset = 3;
+
+			for (int row = startRow; row < endRow; ++row) {
+				for (int col = startCol; col < endCol; ++col) {
+					int pos = row * 4 * imageWidth + col * 4;
+
+					newPixels[pos] = (byte) 0xFF;
+					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
+						newPixels[pos + pixelNumber] = (byte) 0;
+					newPixels[pos + offset] = pixels[pos + offset];
+				}
+			}
+		}
+
+		public void applyGrayscale(final int startRow, final int endRow, final int startCol, final int endCol,
+				final int imageWidth, byte[] pixels, byte[] newPixels) {
+			for (int row = startRow; row < endRow; ++row) {
+				for (int col = startCol; col < endCol; ++col) {
+					int pos = row * 4 * imageWidth + col * 4;
+
+					final float blue = ((int) pixels[pos + 1]) & 0xFF;
+					final float green = ((int) pixels[pos + 2]) & 0xFF;
+					final float red = ((int) pixels[pos + 3]) & 0xFF;
+					byte gray = (byte) (0.299f * red + 0.587f * green + 0.114f * blue);
+
+					newPixels[pos] = (byte) 0xFF;
+					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
+						newPixels[pos + pixelNumber] = gray;
+				}
+			}
+		}
+
+		public void applyKernel(final int startRow, final int endRow, final int startCol, final int endCol,
+				final int imageWidth, byte[] pixels, byte[] newPixels, final IKernel kernel) {
+			final float[] kernelMatrix = kernel.getKernel();
+			final int kernelWidth = kernel.getWidth();
+			final int kernelHeight = kernel.getHeight();
+			final int[] origin = kernel.getOrigin();
+
+			final int startFromRow = startRow - origin[0];
+			final int endAtRow = endRow - origin[0];
+			final int startFromCol = startCol - origin[1];
+			final int endAtCol = endCol - origin[1];
+
+			for (int row = startFromRow; row < endAtRow; ++row) {
+				for (int col = startFromCol; col < endAtCol; ++col) {
+					float redSum = 0;
+					float greenSum = 0;
+					float blueSum = 0;
+					for (int npos = 0; npos < kernelMatrix.length; ++npos) {
+						int relativeRow = row + (kernelWidth - npos / kernelWidth - 1);
+						int relativeCol = col + (kernelWidth - npos % kernelWidth - 1);
+						if (relativeRow < startRow)
+							relativeRow += kernelHeight;
+						else if (relativeRow >= endRow)
+							relativeRow -= kernelHeight;
+						if (relativeCol < startCol)
+							relativeCol += kernelWidth;
+						else if (relativeCol >= endCol)
+							relativeCol -= kernelWidth;
+
+						int pos = (relativeRow * 4 * imageWidth) + (relativeCol * 4) + 1;
+						blueSum += kernelMatrix[npos] * ((int) pixels[pos++] & 0xFF);
+						greenSum += kernelMatrix[npos] * ((int) pixels[pos++] & 0xFF);
+						redSum += kernelMatrix[npos] * ((int) pixels[pos] & 0xFF);
+					}
+
+					int pos = ((row + origin[0]) * 4 * imageWidth) + ((col + origin[1]) * 4);
+					newPixels[pos++] = (byte) 0xFF;
+					newPixels[pos++] = (byte) blueSum;
+					newPixels[pos++] = (byte) greenSum;
+					newPixels[pos] = (byte) redSum;
+				}
+			}
+		}
+
+		public void applyNegative(final int startRow, final int endRow, final int startCol, final int endCol,
+				final int imageWidth, byte[] pixels, byte[] newPixels) {
+			for (int row = startRow; row < endRow; ++row) {
+				for (int col = startCol; col < endCol; ++col) {
+					int pos = row * 4 * imageWidth + col * 4;
+
+					newPixels[pos] = (byte) 0xFF;
+					for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
+						newPixels[pos + pixelNumber] = (byte) (255 - (int) (pixels[pos + pixelNumber] & 0xFF));
+				}
+			}
+		}
+	};
 }
