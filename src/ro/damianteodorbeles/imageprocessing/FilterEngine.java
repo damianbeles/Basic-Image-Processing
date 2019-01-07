@@ -33,6 +33,8 @@ public class FilterEngine {
 			return setColorFilter(image, ColorFilter.BLUE);
 		case GRAYSCALE:
 			return grayscale(image);
+		case NEGATIVE:
+			return negative(image);
 		default:
 			return image;
 		}
@@ -46,11 +48,57 @@ public class FilterEngine {
 	}
 
 	private BufferedImage createBufferedImageFromByteArray(final byte[] pixels, final int imageWidth,
-			final int imageHeight, final int type) {
-		BufferedImage returnImage = new BufferedImage(imageWidth, imageHeight, type);
+			final int imageHeight) {
+		BufferedImage returnImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
 		returnImage.setData(
 				Raster.createRaster(returnImage.getSampleModel(), new DataBufferByte(pixels, pixels.length), null));
 		return returnImage;
+	}
+
+	private BufferedImage negative(final BufferedImage image) {
+		BufferedImage imageToProcess = copyImage(image);
+		final int imageWidth = imageToProcess.getWidth();
+		final int imageHeight = imageToProcess.getHeight();
+		final byte[] pixels = ((DataBufferByte) imageToProcess.getRaster().getDataBuffer()).getData();
+
+		final byte[] newPixels = new byte[pixels.length];
+
+		ExecutorService grayscaleMultithread = Executors.newFixedThreadPool(numberOfThreadsToProcessOn);
+		CompletionService<Void> grayscaleMultithreadCompletition = new ExecutorCompletionService<Void>(
+				grayscaleMultithread);
+
+		for (int threadIndex = 0; threadIndex < numberOfThreadsToProcessOn; ++threadIndex) {
+			final int indexer = threadIndex;
+			grayscaleMultithreadCompletition.submit(new Callable<Void>() {
+				public Void call() {
+					final int startRow = indexer * (imageHeight / numberOfThreadsToProcessOn);
+					final int endRow = (indexer + 1) * (imageHeight / numberOfThreadsToProcessOn);
+					final int startCol = 0;
+					final int endCol = imageWidth;
+
+					for (int row = startRow; row < endRow; ++row) {
+						for (int col = startCol; col < endCol; ++col) {
+							int pos = row * 4 * imageWidth + col * 4;
+
+							newPixels[pos] = (byte) 0xFF;
+							for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
+								newPixels[pos + pixelNumber] = (byte) (255 - (int) (pixels[pos + pixelNumber] & 0xFF));
+						}
+					}
+					return null;
+				}
+			});
+		}
+
+		for (int threadNumber = 0; threadNumber < numberOfThreadsToProcessOn; ++threadNumber) {
+			try {
+				grayscaleMultithreadCompletition.take();
+			} catch (InterruptedException e) {
+				System.out.println("Exception caught while processing the image on multiple threads.");
+			}
+		}
+
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight);
 	}
 
 	private BufferedImage grayscale(final BufferedImage image) {
@@ -101,7 +149,7 @@ public class FilterEngine {
 			}
 		}
 
-		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight);
 	}
 
 	private BufferedImage setColorFilter(final BufferedImage image, final ColorFilter colorFilter) {
@@ -137,23 +185,9 @@ public class FilterEngine {
 						for (int col = startCol; col < endCol; ++col) {
 							int pos = row * 4 * imageWidth + col * 4;
 
-							int blue = pixels[pos + 1] - 255;
-							int green = pixels[pos + 2] - 255;
-							int red = pixels[pos + 3] - 255;
-
-							red = Math.max(red, 0);
-							red = Math.min(255, red);
-
-							green = Math.max(green, 0);
-							green = Math.min(255, green);
-
-							blue = Math.max(blue, 0);
-							blue = Math.min(255, blue);
-
 							newPixels[pos] = (byte) 0xFF;
-							newPixels[pos + 1] = (byte) blue;
-							newPixels[pos + 2] = (byte) green;
-							newPixels[pos + 3] = (byte) red;
+							for (int pixelNumber = 1; pixelNumber < 4; ++pixelNumber)
+								newPixels[pos + pixelNumber] = (byte) 0;
 							newPixels[pos + offset] = pixels[pos + offset];
 						}
 					}
@@ -170,7 +204,7 @@ public class FilterEngine {
 			}
 		}
 
-		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight);
 	}
 
 	private BufferedImage applyKernel(final BufferedImage image, final IKernel kernel) {
@@ -253,6 +287,6 @@ public class FilterEngine {
 			}
 		}
 
-		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight, BufferedImage.TYPE_4BYTE_ABGR);
+		return createBufferedImageFromByteArray(newPixels, imageWidth, imageHeight);
 	}
 }

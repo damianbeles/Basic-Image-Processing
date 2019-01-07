@@ -9,7 +9,8 @@ public enum Filter {
 	RED_COLORING("RED COLORING"),
 	GREEN_COLORING("GREEN COLORING"),
 	BLUE_COLORING("BLUE COLORING"),
-	GRAYSCALE("GRAYSCALE");
+	GRAYSCALE("GRAYSCALE"),
+	NEGATIVE("NEGATIVE");
 	
 	Filter(String label) {
 		this.label = label;
