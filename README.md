@@ -1,16 +1,13 @@
 # Java Basic Image Processing College Project
 
 # Motivation
-This is a basic image processing application made for a college seminar project given by @discoleo.
+This is a basic image processing application made for a college seminar project.
 
 # Description
-The project is an application which allows you to process images and apply effects on them such as blur, sharpen, edge detection etc.
+The project is an application which allows you to manage mp3 playlists, create new ones, change tracks orders etc.
 
 # GUI
-The interface for the application it's a simple window:
+Application's interface:
 
-![Main Window](https://i.imgur.com/YbHlPAs.png)
+![Main Window](https://i.imgur.com/LsfQ5Fk.png)
 
-The following filters are currently implemented:
-
-![Implemented Filters](https://i.imgur.com/9wNSGvX.png)
